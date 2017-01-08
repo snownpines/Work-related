@@ -1,6 +1,6 @@
 # Assistant worktime @ caretaker calculator
-# MK 2017-01
-# Developed with Python 3.4
+# MK 2017
+# Python 3
 
 """
 This is just a list (in swe.) of functionality that's implemented, or that
@@ -9,12 +9,13 @@ I might add.
 --Förbättringar--
 Klart! -multiplicera tider: 8*8,0-12,30
 Klart! -spara summan för varje blankett och summera totalt för brukare
-Klart! -räkna antalet blanketter
+Klart! -räkna blanketter för brukare
 Klart! -särredovisa väntetid? för den ska ju delas på fyra
+Klart! -visa antal tidsredovisningar
+Klart! -fristående addera tider
 
 -inte behöva ange 'komma minut': 7-12
 -uppmärksamma om man matar in något utanför tidsramar: 25,78 etc.
--fristående addera tider
 -undo-funktion för senaste input
 
 1.input->2.format_input->3.timespan_to_hours->4.save_hours->5.next_2-4_cycle->6.add_hours
@@ -174,11 +175,34 @@ def number_of_reports(care_receiver, care_receiver_wt):
     return reports
 
 
+def add_hours():
+    """Calculate total for hours"""
+    times_to_add = []
+    
+    print('\nInputformat ("q" för att sluta/summera): hh,mm\n')
+    
+    while True:
+        time = input('tid i timmar: ')
+        
+        if time == 'q':
+            break
+        
+        hours, mins = time.split(',')
+        times_to_add.append((int(hours), int(mins)))
+        
+        print('{}:{:02}'.format(int(hours), int(mins)))
+    
+    h_sum, m_sum = add_times_in_list(times_to_add)
+    
+    print('\n--Summa timmar: {}:{:02}\n'.format(h_sum, m_sum))
+    print('_' * 24)
+
+
 care_receiver = []
 care_receiver_wait_time = []
 
 while True:
-    choice = input('\nLägg till en tidsredovisning (1) eller \navsluta/räkna ihop total arbetad tid hos brukare (2): ')
+    choice = input('\n(1) Lägg till en tidsredovisning\n(2) Avsluta/räkna ihop total arbetad tid hos brukare\n(3) Addera tider fristående\n: ')
     
     if choice == '1':
         times, wait_times = time_report()
@@ -206,5 +230,7 @@ while True:
         print('huvudlistan: ', care_receiver)
         print('väntelistan: ', care_receiver_wait_time)
         break
+    elif choice == '3':
+        add_hours()
     else:
         print('\nOgiltigt val! Försök igen.\n')
