@@ -1,6 +1,6 @@
 # Assistant worktime @ caretaker calculator
-# MK 2017
-# Python 3
+# MK 2017-01
+# Developed with Python 3.4
 
 """
 This is just a list (in swe.) of functionality that's implemented, or that
