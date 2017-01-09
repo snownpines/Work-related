@@ -1,6 +1,6 @@
 # Assistant worktime @ caretaker calculator
 # MK 2017-01
-# Developed with Python 3.4
+# Developed using Python 3.4
 
 """
 This is just a list (in swe.) of functionality that's implemented, or that
@@ -13,7 +13,10 @@ Klart! -räkna blanketter för brukare
 Klart! -särredovisa väntetid? för den ska ju delas på fyra
 Klart! -visa antal tidsredovisningar
 Klart! -fristående addera tider
+Klart! -kunna skriva in tid som antal timmar istället för start-stopp tid
 
+-regel för att bara skriva in minuter som 30 eller 03, men inte 3
+-minus för att ta bort tid
 -inte behöva ange 'komma minut': 7-12
 -uppmärksamma om man matar in något utanför tidsramar: 25,78 etc.
 -undo-funktion för senaste input
@@ -48,7 +51,7 @@ def timespan_to_hours(begin, end, multiple):
     return h_out, m_out
 
 
-def format_input(inp_str):
+def format_input(inp_str, span=True):
     """Format input for processing"""
     w_time = False
     
@@ -62,11 +65,15 @@ def format_input(inp_str):
     else:
         multiple = 1
     
-    time1_str, time2_str = inp_str.split('-')
-    time1 = (int(time1_str.split(',')[0]), int(time1_str.split(',')[1]))
-    time2 = (int(time2_str.split(',')[0]), int(time2_str.split(',')[1]))
-    
-    return time1, time2, multiple, w_time
+    if span:
+        time1_str, time2_str = inp_str.split('-')
+        time1 = (int(time1_str.split(',')[0]), int(time1_str.split(',')[1]))
+        time2 = (int(time2_str.split(',')[0]), int(time2_str.split(',')[1]))
+        
+        return time1, time2, multiple, w_time
+    else:
+        h_out, m_out = (int(inp_str.split(',')[0]), int(inp_str.split(',')[1]))
+        return h_out, m_out, multiple, w_time
 
 
 def add_times_in_list(time_list):
@@ -140,13 +147,27 @@ def time_report():
         if begin_end_h == 'q':
             break
         
-        *timespan_tuple, w_time = format_input(begin_end_h)
-        if not w_time:
-            times_to_add.append(timespan_to_hours(*timespan_tuple))
-            print('{}:{:02}'.format(*timespan_to_hours(*timespan_tuple)))
-        elif w_time:
-            wait_times_to_add.append(timespan_to_hours(*timespan_tuple))
-            print('{}:{:02} (väntetid)'.format(*timespan_to_hours(*timespan_tuple)))
+        if '-' not in begin_end_h and ',' in begin_end_h:
+            hours, mins, multiple, w_time = format_input(begin_end_h, span=False)
+            
+            if multiple > 1:
+                hours, mins = multiply_time(hours, mins, multiple)
+            
+            if not w_time:
+                times_to_add.append((hours, mins))
+                print('{}:{:02}'.format(hours, mins))
+            elif w_time:
+                wait_times_to_add.append((hours, mins))
+                print('{}:{:02} (väntetid)'.format(hours, mins))
+        
+        else:
+            *timespan_tuple, w_time = format_input(begin_end_h)
+            if not w_time:
+                times_to_add.append(timespan_to_hours(*timespan_tuple))
+                print('{}:{:02}'.format(*timespan_to_hours(*timespan_tuple)))
+            elif w_time:
+                wait_times_to_add.append(timespan_to_hours(*timespan_tuple))
+                print('{}:{:02} (väntetid)'.format(*timespan_to_hours(*timespan_tuple)))
         
     
     h_sum, m_sum = add_times_in_list(times_to_add)
