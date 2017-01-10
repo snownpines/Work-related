@@ -14,10 +14,10 @@ Klart! -särredovisa väntetid? för den ska ju delas på fyra
 Klart! -visa antal tidsredovisningar
 Klart! -fristående addera tider
 Klart! -kunna skriva in tid som antal timmar istället för start-stopp tid
+Klart! -inte behöva ange 'komma minut': 7-12
 
 -regel för att bara skriva in minuter som 30 eller 03, men inte 3
 -minus för att ta bort tid
--inte behöva ange 'komma minut': 7-12
 -uppmärksamma om man matar in något utanför tidsramar: 25,78 etc.
 -undo-funktion för senaste input
 
@@ -67,12 +67,22 @@ def format_input(inp_str, span=True):
     
     if span:
         time1_str, time2_str = inp_str.split('-')
-        time1 = (int(time1_str.split(',')[0]), int(time1_str.split(',')[1]))
-        time2 = (int(time2_str.split(',')[0]), int(time2_str.split(',')[1]))
+        
+        if ',' not in time1_str:
+            time1 = (int(time1_str), 0)
+        else:
+            time1 = (int(time1_str.split(',')[0]), int(time1_str.split(',')[1]))
+        if ',' not in time2_str:
+            time2 = (int(time2_str), 0)
+        else:
+            time2 = (int(time2_str.split(',')[0]), int(time2_str.split(',')[1]))
         
         return time1, time2, multiple, w_time
     else:
-        h_out, m_out = (int(inp_str.split(',')[0]), int(inp_str.split(',')[1]))
+        if ',' not in inp_str:
+            h_out, m_out = int(inp_str), 0
+        else:
+            h_out, m_out = (int(inp_str.split(',')[0]), int(inp_str.split(',')[1]))
         return h_out, m_out, multiple, w_time
 
 
@@ -134,7 +144,9 @@ def time_report():
     '8,0-9,0' start and stop times. Here the result is 1:00 hour.
     '3*8,0-9,0' same as above but multiplied by 3.
     '/8,0-9,0' or '/3*8,0-9,0' puts the result in the special category
-    wait time."""
+    wait time.
+    '8,30', '3*8,30', '/8,30' and so on also work.
+    '8-12', '/2*8' for hour only."""
     times_to_add = []
     wait_times_to_add = []
     
@@ -147,7 +159,7 @@ def time_report():
         if begin_end_h == 'q':
             break
         
-        if '-' not in begin_end_h and ',' in begin_end_h:
+        if '-' not in begin_end_h:
             hours, mins, multiple, w_time = format_input(begin_end_h, span=False)
             
             if multiple > 1:
@@ -208,10 +220,16 @@ def add_hours():
         if time == 'q':
             break
         
-        hours, mins = time.split(',')
-        times_to_add.append((int(hours), int(mins)))
-        
-        print('{}:{:02}'.format(int(hours), int(mins)))
+        if ',' in time:
+            hours, mins = time.split(',')
+            times_to_add.append((int(hours), int(mins)))
+            
+            print('{}:{:02}'.format(int(hours), int(mins)))
+        else:
+            hours = int(time)
+            times_to_add.append((hours, 0))
+            
+            print('{}:00'.format(hours))
     
     h_sum, m_sum = add_times_in_list(times_to_add)
     
@@ -223,7 +241,10 @@ care_receiver = []
 care_receiver_wait_time = []
 
 while True:
-    choice = input('\n(1) Lägg till en tidsredovisning\n(2) Avsluta/räkna ihop total arbetad tid hos brukare\n(3) Addera tider fristående\n: ')
+    print('\n(1) Lägg till en tidsredovisning')
+    print('(2) Avsluta/räkna ihop total arbetad tid hos brukare')
+    print('(3) Addera tider fristående')
+    choice = input(': ')
     
     if choice == '1':
         times, wait_times = time_report()
