@@ -15,11 +15,11 @@ Klart! -visa antal tidsredovisningar
 Klart! -fristående addera tider
 Klart! -kunna skriva in tid som antal timmar istället för start-stopp tid
 Klart! -inte behöva ange 'komma minut': 7-12
+Klart! -undo-funktion för senaste input
 
 -regel för att bara skriva in minuter som 30 eller 03, men inte 3
 -minus för att ta bort tid
 -uppmärksamma om man matar in något utanför tidsramar: 25,78 etc.
--undo-funktion för senaste input
 
 1.input->2.format_input->3.timespan_to_hours->4.save_hours->5.next_2-4_cycle->6.add_hours
 """
@@ -141,6 +141,7 @@ def time_report():
     
     Legit commands:
     'q' exits input mode for time report and prints the sum of hours.
+    'del' and '/del' deletes the last input for time and wait time.
     '8,0-9,0' start and stop times. Here the result is 1:00 hour.
     '3*8,0-9,0' same as above but multiplied by 3.
     '/8,0-9,0' or '/3*8,0-9,0' puts the result in the special category
@@ -158,6 +159,16 @@ def time_report():
         
         if begin_end_h == 'q':
             break
+        
+        if begin_end_h == 'del' and times_to_add:
+            print('-Arbetstid {}:{:02} raderad.'.format(*times_to_add.pop()))
+            continue
+        elif begin_end_h == '/del' and wait_times_to_add:
+            print('-Väntetid {}:{:02} raderad.'.format(*wait_times_to_add.pop()))
+            continue
+        elif begin_end_h == 'del':
+            print('-Det finns inget att radera!')
+            continue
         
         if '-' not in begin_end_h:
             hours, mins, multiple, w_time = format_input(begin_end_h, span=False)
@@ -244,6 +255,7 @@ while True:
     print('\n(1) Lägg till en tidsredovisning')
     print('(2) Avsluta/räkna ihop total arbetad tid hos brukare')
     print('(3) Addera tider fristående')
+    print('(4) Radera sista inlagda tidsredovisningen')
     choice = input(': ')
     
     if choice == '1':
@@ -274,5 +286,10 @@ while True:
         break
     elif choice == '3':
         add_hours()
+    elif choice == '4' and care_receiver:
+        print('\n-Tidsredovisning med arbetstid {}:{:02}'.format(*care_receiver.pop()), end=' ')
+        print('och väntetid {}:{:02} raderad!'.format(*care_receiver_wait_time.pop()))
+    elif choice == '4':
+        print('\n-Det finns inga tidsredovisningar inlagda!')    
     else:
         print('\nOgiltigt val! Försök igen.\n')
