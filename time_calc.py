@@ -16,9 +16,11 @@ Klart! -fristående addera tider
 Klart! -kunna skriva in tid som antal timmar istället för start-stopp tid
 Klart! -inte behöva ange 'komma minut': 7-12
 Klart! -undo-funktion för senaste input
+Klart! -try-except för tidsredovisningsinmatning, som plockar felskrivningar
 
+-skriva in enbart minuter miniräknar-style dvs utan 0 för timmar: ,45
 -regel för att bara skriva in minuter som 30 eller 03, men inte 3
--minus för att ta bort tid
+-minus för att ta bort tid?
 -uppmärksamma om man matar in något utanför tidsramar: 25,78 etc.
 
 1.input->2.format_input->3.timespan_to_hours->4.save_hours->5.next_2-4_cycle->6.add_hours
@@ -128,8 +130,13 @@ def time_by_4(h_in, m_in):
     For use on wait time before adding it to sum total"""
     h_out = 0
     m_out = 0
+    ripe_for_div = (h_in * 60) + m_in
+    minutes_by_4 = ripe_for_div // 4
+    round_num = ripe_for_div / 4 - ripe_for_div // 4
     
-    minutes_by_4 = ((h_in * 60) + m_in) // 4
+    if round_num >= 0.5:
+        minutes_by_4 += 1
+    
     h_out = minutes_by_4 // 60
     m_out = minutes_by_4 % 60
     
@@ -157,41 +164,44 @@ def time_report():
     
         begin_end_h = input('tid arbetspass: ')
         
-        if begin_end_h == 'q':
-            break
-        
-        if begin_end_h == 'del' and times_to_add:
-            print('-Arbetstid {}:{:02} raderad.'.format(*times_to_add.pop()))
-            continue
-        elif begin_end_h == '/del' and wait_times_to_add:
-            print('-Väntetid {}:{:02} raderad.'.format(*wait_times_to_add.pop()))
-            continue
-        elif begin_end_h == 'del':
-            print('-Det finns inget att radera!')
-            continue
-        
-        if '-' not in begin_end_h:
-            hours, mins, multiple, w_time = format_input(begin_end_h, span=False)
+        try:
+            if begin_end_h == 'q':
+                break
             
-            if multiple > 1:
-                hours, mins = multiply_time(hours, mins, multiple)
+            if begin_end_h == 'del' and times_to_add:
+                print('-Arbetstid {}:{:02} raderad.'.format(*times_to_add.pop()))
+                continue
+            elif begin_end_h == '/del' and wait_times_to_add:
+                print('-Väntetid {}:{:02} raderad.'.format(*wait_times_to_add.pop()))
+                continue
+            elif begin_end_h == 'del':
+                print('-Det finns inget att radera!')
+                continue
             
-            if not w_time:
-                times_to_add.append((hours, mins))
-                print('{}:{:02}'.format(hours, mins))
-            elif w_time:
-                wait_times_to_add.append((hours, mins))
-                print('{}:{:02} (väntetid)'.format(hours, mins))
-        
-        else:
-            *timespan_tuple, w_time = format_input(begin_end_h)
-            if not w_time:
-                times_to_add.append(timespan_to_hours(*timespan_tuple))
-                print('{}:{:02}'.format(*timespan_to_hours(*timespan_tuple)))
-            elif w_time:
-                wait_times_to_add.append(timespan_to_hours(*timespan_tuple))
-                print('{}:{:02} (väntetid)'.format(*timespan_to_hours(*timespan_tuple)))
-        
+            if '-' not in begin_end_h:
+                hours, mins, multiple, w_time = format_input(begin_end_h, span=False)
+            
+                if multiple > 1:
+                    hours, mins = multiply_time(hours, mins, multiple)
+                
+                if not w_time:
+                    times_to_add.append((hours, mins))
+                    print('{}:{:02}'.format(hours, mins))
+                elif w_time:
+                    wait_times_to_add.append((hours, mins))
+                    print('{}:{:02} (väntetid)'.format(hours, mins))
+            
+            else:
+                *timespan_tuple, w_time = format_input(begin_end_h)
+                if not w_time:
+                    times_to_add.append(timespan_to_hours(*timespan_tuple))
+                    print('{}:{:02}'.format(*timespan_to_hours(*timespan_tuple)))
+                elif w_time:
+                    wait_times_to_add.append(timespan_to_hours(*timespan_tuple))
+                    print('{}:{:02} (väntetid)'.format(*timespan_to_hours(*timespan_tuple)))
+        except:
+            print('\nNu blev det fel\n')
+            continue
     
     h_sum, m_sum = add_times_in_list(times_to_add)
     wait_h_sum, wait_m_sum = add_times_in_list(wait_times_to_add)
