@@ -17,18 +17,20 @@ Klart! -kunna skriva in tid som antal timmar istället för start-stopp tid
 Klart! -inte behöva ange 'komma minut': 7-12
 Klart! -undo-funktion för senaste input
 Klart! -try-except för tidsredovisningsinmatning, som plockar felskrivningar
+Klart! -refaktorera i bl.a time_report() för att få bort dubblerad kod
 
 -skriva in enbart minuter miniräknar-style dvs utan 0 för timmar: ,45
 -regel för att bara skriva in minuter som 30 eller 03, men inte 3
--minus för att ta bort tid?
 -uppmärksamma om man matar in något utanför tidsramar: 25,78 etc.
 
 1.input->2.format_input->3.timespan_to_hours->4.save_hours->5.next_2-4_cycle->6.add_hours
 """
 
+import os
 
-def timespan_to_hours(begin, end, multiple):
-    """Convert start and end times to time span"""    
+
+def timespan_to_hours(begin, end):
+    """Convert start and end times to amount of hours/minutes"""    
     h_out = 0
     m_out = 0
     
@@ -46,9 +48,6 @@ def timespan_to_hours(begin, end, multiple):
         m_out = 0
     elif end[1] > begin[1]:
         m_out = ((60 + end[1]) - begin[1]) - 60
-    
-    if multiple > 1:
-        h_out, m_out = multiply_time(h_out, m_out, multiple)
     
     return h_out, m_out
 
@@ -158,47 +157,52 @@ def time_report():
     times_to_add = []
     wait_times_to_add = []
     
+    def input_result(hours, mins, multiple, w_time):
+        """Add time to right stack and print time added"""
+        nonlocal times_to_add
+        nonlocal wait_times_to_add
+        
+        if multiple > 1:
+            hours, mins = multiply_time(hours, mins, multiple)
+        
+        if not w_time:
+            times_to_add.append((hours, mins))
+            print('{}:{:02}'.format(hours, mins))
+        elif w_time:
+            wait_times_to_add.append((hours, mins))
+            print('{}:{:02} (väntetid)'.format(hours,mins))
+    
+    
     print('\nInputformat ("q" för att sluta/summera): hh,mm-hh,mm\n')
     
     while True:
     
-        begin_end_h = input('tid arbetspass: ')
+        inp_str = input('tid arbetspass: ')
         
         try:
-            if begin_end_h == 'q':
+            if inp_str == 'q':
                 break
             
-            if begin_end_h == 'del' and times_to_add:
+            if inp_str == 'del' and times_to_add:
                 print('-Arbetstid {}:{:02} raderad.'.format(*times_to_add.pop()))
                 continue
-            elif begin_end_h == '/del' and wait_times_to_add:
+            elif inp_str == '/del' and wait_times_to_add:
                 print('-Väntetid {}:{:02} raderad.'.format(*wait_times_to_add.pop()))
                 continue
-            elif begin_end_h == 'del':
+            elif inp_str == 'del':
                 print('-Det finns inget att radera!')
                 continue
             
-            if '-' not in begin_end_h:
-                hours, mins, multiple, w_time = format_input(begin_end_h, span=False)
+            if '-' not in inp_str:
+                hours, mins, multiple, w_time = format_input(inp_str, span=False)
             
-                if multiple > 1:
-                    hours, mins = multiply_time(hours, mins, multiple)
-                
-                if not w_time:
-                    times_to_add.append((hours, mins))
-                    print('{}:{:02}'.format(hours, mins))
-                elif w_time:
-                    wait_times_to_add.append((hours, mins))
-                    print('{}:{:02} (väntetid)'.format(hours, mins))
+                input_result(hours, mins, multiple, w_time)
             
             else:
-                *timespan_tuple, w_time = format_input(begin_end_h)
-                if not w_time:
-                    times_to_add.append(timespan_to_hours(*timespan_tuple))
-                    print('{}:{:02}'.format(*timespan_to_hours(*timespan_tuple)))
-                elif w_time:
-                    wait_times_to_add.append(timespan_to_hours(*timespan_tuple))
-                    print('{}:{:02} (väntetid)'.format(*timespan_to_hours(*timespan_tuple)))
+                start_t, end_t, multiple, w_time = format_input(inp_str)
+                hours, mins = timespan_to_hours(start_t, end_t)
+                input_result(hours, mins, multiple, w_time)
+
         except:
             print('\nNu blev det fel\n')
             continue
@@ -293,7 +297,21 @@ while True:
         print('--Antal tidsredovisningar: {}'.format(reports))
         print('huvudlistan: ', care_receiver)
         print('väntelistan: ', care_receiver_wait_time)
-        break
+        print('\n(1) Påbörja inmatning för ny brukare')
+        print('(2) Avsluta (fönstret kommer stängas ner!)')
+        end_choice = input(': ')
+        
+        if end_choice == '1':
+            care_receiver = []
+            care_receiver_wait_time = []
+            os.system('cls')
+            continue
+        elif end_choice == '2':
+            break
+        else:
+            break
+        
+        
     elif choice == '3':
         add_hours()
     elif choice == '4' and care_receiver:
