@@ -1,30 +1,6 @@
-# Assistant worktime @ caretaker calculator
+# Assistant worktime @ care recipient calculator
 # MK 2017-01
 # Developed using Python 3.4
-
-"""
-This is just a list (in swe.) of functionality that's implemented, or that
-I might add.
-
---Förbättringar--
-Klart! -multiplicera tider: 8*8,0-12,30
-Klart! -spara summan för varje blankett och summera totalt för brukare
-Klart! -räkna blanketter för brukare
-Klart! -särredovisa väntetid? för den ska ju delas på fyra
-Klart! -visa antal tidsredovisningar
-Klart! -fristående addera tider
-Klart! -kunna skriva in tid som antal timmar istället för start-stopp tid
-Klart! -inte behöva ange 'komma minut': 7-12
-Klart! -undo-funktion för senaste input
-Klart! -try-except för tidsredovisningsinmatning, som plockar felskrivningar
-Klart! -refaktorera i bl.a time_report() för att få bort dubblerad kod
-
--skriva in enbart minuter miniräknar-style dvs utan 0 för timmar: ,45
--regel för att bara skriva in minuter som 30 eller 03, men inte 3
--uppmärksamma om man matar in något utanför tidsramar: 25,78 etc.
-
-1.input->2.format_input->3.timespan_to_hours->4.save_hours->5.next_2-4_cycle->6.add_hours
-"""
 
 import os
 
@@ -56,6 +32,16 @@ def format_input(inp_str, span=True):
     """Format input for processing"""
     w_time = False
     
+    
+    def intify_str(string):
+        """Turn time string to tuple with time ints"""
+        
+        if ',' not in string:
+            return (int(string), 0)
+        else:
+            return (int(string.split(',')[0]), int(string.split(',')[1]))
+    
+    
     if inp_str.startswith('/'):
         w_time = True
         inp_str = inp_str[1:]
@@ -69,21 +55,14 @@ def format_input(inp_str, span=True):
     if span:
         time1_str, time2_str = inp_str.split('-')
         
-        if ',' not in time1_str:
-            time1 = (int(time1_str), 0)
-        else:
-            time1 = (int(time1_str.split(',')[0]), int(time1_str.split(',')[1]))
-        if ',' not in time2_str:
-            time2 = (int(time2_str), 0)
-        else:
-            time2 = (int(time2_str.split(',')[0]), int(time2_str.split(',')[1]))
+        time1 = intify_str(time1_str)
+        
+        time2 = intify_str(time2_str)
         
         return time1, time2, multiple, w_time
     else:
-        if ',' not in inp_str:
-            h_out, m_out = int(inp_str), 0
-        else:
-            h_out, m_out = (int(inp_str.split(',')[0]), int(inp_str.split(',')[1]))
+        h_out, m_out = intify_str(inp_str)
+        
         return h_out, m_out, multiple, w_time
 
 
@@ -157,6 +136,7 @@ def time_report():
     times_to_add = []
     wait_times_to_add = []
     
+    
     def input_result(hours, mins, multiple, w_time):
         """Add time to right stack and print time added"""
         nonlocal times_to_add
@@ -216,16 +196,16 @@ def time_report():
     return (h_sum, m_sum), (wait_h_sum, wait_m_sum)
 
 
-def number_of_reports(care_receiver, care_receiver_wt):
+def number_of_reports(care_recipient, care_recipient_wt):
     """Give amount of time reports
     
     Counts all time reports that doesn't have
     zeroed tuples, (0, 0), in both lists"""
     reports = 0
     
-    for i in range(len(care_receiver)):
-        if care_receiver[i] == (0,0) and \
-           care_receiver_wt[i] == (0,0):
+    for i in range(len(care_recipient)):
+        if care_recipient[i] == (0,0) and \
+           care_recipient_wt[i] == (0,0):
             pass
         else:
             reports += 1
@@ -262,8 +242,8 @@ def add_hours():
     print('_' * 24)
 
 
-care_receiver = []
-care_receiver_wait_time = []
+care_recipient = []
+care_recipient_wait_time = []
 
 while True:
     print('\n(1) Lägg till en tidsredovisning')
@@ -274,14 +254,14 @@ while True:
     
     if choice == '1':
         times, wait_times = time_report()
-        care_receiver.append(times)
-        care_receiver_wait_time.append(wait_times)
+        care_recipient.append(times)
+        care_recipient_wait_time.append(wait_times)
         continue
     elif choice == '2':
-        h_total, m_total = add_times_in_list(care_receiver)
+        h_total, m_total = add_times_in_list(care_recipient)
         
         wait_h_total, wait_m_total = \
-            add_times_in_list(care_receiver_wait_time)
+            add_times_in_list(care_recipient_wait_time)
             
         by_4_wait_h_total, by_4_wait_m_total = \
             time_by_4(wait_h_total, wait_m_total)
@@ -289,34 +269,33 @@ while True:
         h_final, m_final = add_times_in_list([(h_total, m_total),\
             (by_4_wait_h_total, by_4_wait_m_total)])
             
-        reports = number_of_reports(care_receiver, care_receiver_wait_time)
+        reports = number_of_reports(care_recipient, care_recipient_wait_time)
         
         print('\n--Total arbetstid: {}:{:02}'.format(h_total, m_total))
         print('--Total väntetid (1/4): {}:{:02} ({}:{:02})'.format(wait_h_total, wait_m_total, by_4_wait_h_total, by_4_wait_m_total))
         print('--Summa total: {}:{:02}'.format(h_final, m_final))
         print('--Antal tidsredovisningar: {}'.format(reports))
-        print('huvudlistan: ', care_receiver)
-        print('väntelistan: ', care_receiver_wait_time)
+        print('huvudlistan: ', care_recipient)
+        print('väntelistan: ', care_recipient_wait_time)
         print('\n(1) Påbörja inmatning för ny brukare')
         print('(2) Avsluta (fönstret kommer stängas ner!)')
         end_choice = input(': ')
         
         if end_choice == '1':
-            care_receiver = []
-            care_receiver_wait_time = []
+            care_recipient = []
+            care_recipient_wait_time = []
             os.system('cls')
             continue
         elif end_choice == '2':
             break
         else:
             break
-        
-        
+    
     elif choice == '3':
         add_hours()
-    elif choice == '4' and care_receiver:
-        print('\n-Tidsredovisning med arbetstid {}:{:02}'.format(*care_receiver.pop()), end=' ')
-        print('och väntetid {}:{:02} raderad!'.format(*care_receiver_wait_time.pop()))
+    elif choice == '4' and care_recipient:
+        print('\n-Tidsredovisning med arbetstid {}:{:02}'.format(*care_recipient.pop()), end=' ')
+        print('och väntetid {}:{:02} raderad!'.format(*care_recipient_wait_time.pop()))
     elif choice == '4':
         print('\n-Det finns inga tidsredovisningar inlagda!')    
     else:
