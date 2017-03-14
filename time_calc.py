@@ -1,5 +1,5 @@
 # Assistant worktime @ care recipient calculator
-# MK 2017-01
+# MK 2017-03
 # Developed using Python 3.4
 
 import os
@@ -66,21 +66,34 @@ def format_input(inp_str, span=True):
         return h_out, m_out, multiple, w_time
 
 
-def add_times_in_list(time_list):
-    """Add all times in list together"""
+def sum_list(time_list):
+    """Add all times in list together
+    
+    Add time and wait time separately"""
     h_sum = 0
     m_sum = 0
+    w_h_sum = 0
+    w_m_sum = 0
     
     for i in time_list:
-        h_sum += i[0]
         
-        if m_sum + i[1] > 59:
-            h_sum += 1
-            m_sum = (m_sum + i[1]) - 60
-        elif m_sum + i[1] <= 59:
-            m_sum += i[1]
-    
-    return h_sum, m_sum
+        if i[2]:
+            w_h_sum += i[0]
+            
+            if w_m_sum + i[1] > 59:
+                w_h_sum += 1
+                w_m_sum = (w_m_sum + i[1]) - 60
+            elif w_m_sum + i[1] <= 59:
+                w_m_sum += i[1]
+        else:
+            h_sum += i[0]
+            
+            if m_sum + i[1] > 59:
+                h_sum += 1
+                m_sum = (m_sum + i[1]) - 60
+            elif m_sum + i[1] <= 59:
+                m_sum += i[1]
+    return h_sum, m_sum, w_h_sum, w_m_sum
 
 
 def multiply_time(h_in, m_in, multiple):
@@ -126,7 +139,7 @@ def time_report():
     
     Legit commands:
     'q' exits input mode for time report and prints the sum of hours.
-    'del' and '/del' deletes the last input for time and wait time.
+    'del' deletes the last input for time.
     '8,0-9,0' start and stop times. Here the result is 1:00 hour.
     '3*8,0-9,0' same as above but multiplied by 3.
     '/8,0-9,0' or '/3*8,0-9,0' puts the result in the special category
@@ -134,23 +147,24 @@ def time_report():
     '8,30', '3*8,30', '/8,30' and so on also work.
     '8-12', '/2*8' for hour only."""
     times_to_add = []
-    wait_times_to_add = []
     
     
     def input_result(hours, mins, multiple, w_time):
-        """Add time to right stack and print time added"""
+        """Add time to stack and print time added
+        
+        index 2 of the tuple that's appended marks time
+        as (0) regular time and (1) wait time"""
         nonlocal times_to_add
-        nonlocal wait_times_to_add
         
         if multiple > 1:
             hours, mins = multiply_time(hours, mins, multiple)
         
-        if not w_time:
-            times_to_add.append((hours, mins))
-            print('{}:{:02}'.format(hours, mins))
-        elif w_time:
-            wait_times_to_add.append((hours, mins))
+        if w_time:
+            times_to_add.append((hours, mins, 1))
             print('{}:{:02} (väntetid)'.format(hours,mins))
+        else:
+            times_to_add.append((hours, mins, 0))
+            print('{}:{:02}'.format(hours, mins))
     
     
     print('\nInputformat ("q" för att sluta/summera): hh,mm-hh,mm\n')
@@ -163,11 +177,11 @@ def time_report():
             if inp_str == 'q':
                 break
             
-            if inp_str == 'del' and times_to_add:
-                print('-Arbetstid {}:{:02} raderad.'.format(*times_to_add.pop()))
+            if inp_str == 'del' and times_to_add and times_to_add[-1][2] == 0:
+                print('-arbetstid {0}:{1:02} raderad.'.format(*times_to_add.pop()))
                 continue
-            elif inp_str == '/del' and wait_times_to_add:
-                print('-Väntetid {}:{:02} raderad.'.format(*wait_times_to_add.pop()))
+            elif inp_str == 'del' and times_to_add and times_to_add[-1][2] == 1:
+                print('-väntetid {0}:{1:02} raderad.'.format(*times_to_add.pop()))
                 continue
             elif inp_str == 'del':
                 print('-Det finns inget att radera!')
@@ -175,9 +189,7 @@ def time_report():
             
             if '-' not in inp_str:
                 hours, mins, multiple, w_time = format_input(inp_str, span=False)
-            
                 input_result(hours, mins, multiple, w_time)
-            
             else:
                 start_t, end_t, multiple, w_time = format_input(inp_str)
                 hours, mins = timespan_to_hours(start_t, end_t)
@@ -187,8 +199,7 @@ def time_report():
             print('\nNu blev det fel\n')
             continue
     
-    h_sum, m_sum = add_times_in_list(times_to_add)
-    wait_h_sum, wait_m_sum = add_times_in_list(wait_times_to_add)
+    h_sum, m_sum, wait_h_sum, wait_m_sum = sum_list(times_to_add)
     
     print('\n--Summa arbetstid: {}:{:02}\n'.format(h_sum, m_sum))
     print('--Summa väntetid: {}:{:02}'.format(wait_h_sum, wait_m_sum))
@@ -227,16 +238,16 @@ def add_hours():
         
         if ',' in time:
             hours, mins = time.split(',')
-            times_to_add.append((int(hours), int(mins)))
+            times_to_add.append((int(hours), int(mins), 'Arbetstid'))
             
             print('{}:{:02}'.format(int(hours), int(mins)))
         else:
             hours = int(time)
-            times_to_add.append((hours, 0))
+            times_to_add.append((hours, 0, 'Arbetstid'))
             
             print('{}:00'.format(hours))
     
-    h_sum, m_sum = add_times_in_list(times_to_add)
+    h_sum, m_sum, *dev_null = sum_list(times_to_add)
     
     print('\n--Summa timmar: {}:{:02}\n'.format(h_sum, m_sum))
     print('_' * 24)
@@ -254,20 +265,22 @@ while True:
     
     if choice == '1':
         times, wait_times = time_report()
-        care_recipient.append(times)
-        care_recipient_wait_time.append(wait_times)
+        care_recipient.append(times + (0,))
+        care_recipient_wait_time.append(wait_times + (1,))
         continue
     elif choice == '2':
-        h_total, m_total = add_times_in_list(care_recipient)
+        h_total, m_total, *dev_null = sum_list(care_recipient)
         
-        wait_h_total, wait_m_total = \
-            add_times_in_list(care_recipient_wait_time)
+        *dev_null, wait_h_total, wait_m_total = \
+            sum_list(care_recipient_wait_time)
             
         by_4_wait_h_total, by_4_wait_m_total = \
             time_by_4(wait_h_total, wait_m_total)
-            
-        h_final, m_final = add_times_in_list([(h_total, m_total),\
-            (by_4_wait_h_total, by_4_wait_m_total)])
+        
+        work_time = (h_total, m_total, 0)
+        wait_time = (by_4_wait_h_total, by_4_wait_m_total, 0)
+        
+        h_final, m_final, *dev_null = sum_list([work_time, wait_time])
             
         reports = number_of_reports(care_recipient, care_recipient_wait_time)
         
